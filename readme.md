@@ -1,6 +1,6 @@
 # YouTube Playlist Duration Checker - With SponsorBlock
 
-[Live Demo]
+[Live App](https://you-tube-playlist-duration-checker.vercel.app/)
 
 ---
 
@@ -50,7 +50,7 @@ It is designed to be fast, accurate, and user-friendly, giving you precise resul
 
 ## Usage
 
-1. Go to the [Live App].  
+1. Go to the [Live App](https://you-tube-playlist-duration-checker.vercel.app/).  
 2. Paste your YouTube playlist URL into the input field.  
 3. Click **Check Duration**.  
 4. View your playlist's original duration and SponsorBlock-adjusted duration instantly.
