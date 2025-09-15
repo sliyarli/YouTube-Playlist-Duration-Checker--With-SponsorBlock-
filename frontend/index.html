@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Playlist Duration Checker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Page title -->
+        <h1><span class="red">YouTube</span> Playlist Duration Checker <br>
+            (Includes <span class="red">SponsorBlock</span>)</h1>
+
+        <!-- Input field and button for playlist URL -->
+        <div class="form-group">
+            <input id="url" placeholder="Enter YouTube Playlist URL">
+            <button onclick="calculate()">Check Duration</button>
+        </div>
+
+        <!-- Result container -->
+        <div id="result" class="result-box">Waiting for input...</div>
+
+        <!-- Footer section -->
+        <footer>
+            <p>Made by <a href="https://github.com/sliyarli" target="_blank">Shahin Aliyarli</a></p>
+        </footer>
+    </div>
+
+    <script>
+        const resultDiv = document.getElementById("result");
+        const API_BASE = "http://127.0.0.1:8000"; // Local API endpoint, change this for deployment
+
+        // Function to calculate playlist duration
+        async function calculate() {
+            const url = document.getElementById("url").value.trim();
+
+            if (!url) {
+                resultDiv.innerText = "Please enter a valid playlist URL.";
+                return;
+            }
+
+            // Show loader while fetching data
+            resultDiv.innerHTML =
+                `
+             <div class="loader">
+                <p class="loading-text">Calculating, please wait...</p>
+                <img src="../assets/images/red-loading.gif" alt="loader">
+             </div>
+            `;
+
+            try {
+                // Fetch playlist data from backend API
+                const response = await fetch(`${API_BASE}/playlist_length?url=${encodeURIComponent(url)}`);
+                if (!response.ok) throw new Error("Failed to fetch playlist data.");
+
+                const data = await response.json();
+
+                // Display the result
+                resultDiv.innerHTML =
+                    `<p class="result-text"><span class="label">Videos:</span> ${data.videos_count}</p>` +
+                    `<p class="result-text"><span class="label">Original Duration:</span> ${data.original_duration}</p>` +
+                    `<p class="result-text"><span class="label">With SponsorBlock segments:</span> ${data.sponsorblock_removed}</p>`;
+            } catch (err) {
+                // Display error message
+                resultDiv.innerText = err.message;
+            }
+        }
+    </script>
+
+</body>
+
+</html>
