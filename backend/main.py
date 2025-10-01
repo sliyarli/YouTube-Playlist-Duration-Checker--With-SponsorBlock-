@@ -7,7 +7,7 @@ import json
 
 app = FastAPI()
 
-# Enable CORS to allow frontend requests from any origin
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,7 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# SponsorBlock categories to skip
+# SponsorBlock categories
 CATEGORIES = [
     "sponsor",
     "intro",
@@ -31,63 +31,62 @@ CATEGORIES = [
     "nonmusic",
 ]
 
-# Convert seconds to HH:MM:SS format
+# Format seconds to HH:MM:SS
 def format_time(seconds: int) -> str:
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
     secs = seconds % 60
     return f"{hours:02}:{minutes:02}:{secs:02}"
 
-
-# Fetch total skip duration for a single video from SponsorBlock API
+# Fetch SponsorBlock skips for one video
 async def fetch_sponsorblock_skip(session: aiohttp.ClientSession, video_id: str) -> int:
     url = f"https://sponsor.ajay.app/api/skipSegments?videoID={video_id}&categories={json.dumps(CATEGORIES)}"
     try:
         async with session.get(url, timeout=10) as resp:
             data = await resp.json()
     except:
-        return 0  # Return 0 if API fails or times out
+        return 0
+    return int(sum((seg["segment"][1] - seg["segment"][0]) for seg in data))
 
-    # Sum durations of all skip segments
-    total_skip = sum((seg["segment"][1] - seg["segment"][0]) for seg in data)
-    return int(total_skip)
+# Batch processing helper
+async def process_batch(session, video_ids, durations, batch_size=50):
+    total_orig, total_sb = 0, 0
 
+    # Split video_ids into chunks
+    for i in range(0, len(video_ids), batch_size):
+        batch_ids = video_ids[i : i + batch_size]
+        batch_durations = durations[i : i + batch_size]
 
-# API endpoint to calculate playlist duration
+        tasks = [fetch_sponsorblock_skip(session, vid) for vid in batch_ids]
+        skips = await asyncio.gather(*tasks)
+
+        for dur, skip in zip(batch_durations, skips):
+            total_orig += dur
+            total_sb += max(0, dur - skip)
+
+    return total_orig, total_sb
+
+# Main API endpoint
 @app.get("/playlist_length")
 async def playlist_length(url: str):
-    # yt-dlp options to extract metadata only, no download
     ydl_opts = {"extract_flat": True, "skip_download": True}
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
             info = ydl.extract_info(url, download=False)
         except:
-            raise HTTPException(
-                status_code=400, detail="Failed to fetch playlist information"
-            )
+            raise HTTPException(status_code=400, detail="Failed to fetch playlist info")
 
     entries = info.get("entries", [])
     if not entries:
         raise HTTPException(status_code=400, detail="Playlist is empty")
 
-    # Collect video IDs and durations
     video_ids = [v["id"] for v in entries]
     durations = [int(v.get("duration", 0)) for v in entries]
 
-    total_original, total_sponsorblock = 0, 0
-
-    # Fetch SponsorBlock skip segments concurrently for all videos
     async with aiohttp.ClientSession() as session:
-        tasks = [fetch_sponsorblock_skip(session, vid) for vid in video_ids]
-        skips = await asyncio.gather(*tasks)
+        total_original, total_sponsorblock = await process_batch(session, video_ids, durations, batch_size=50)
 
-    # Sum total durations with and without SponsorBlock skips
-    for dur, skip in zip(durations, skips):
-        total_original += dur
-        total_sponsorblock += max(0, dur - skip)
-
-    # Return response in HH:MM:SS format
     return {
         "original_duration": format_time(total_original),
         "sponsorblock_removed": format_time(total_sponsorblock),
