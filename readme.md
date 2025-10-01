@@ -54,3 +54,21 @@ It is designed to be fast, accurate, and user-friendly, giving you precise resul
 2. Paste your YouTube playlist URL into the input field.  
 3. Click **Check Duration**.  
 4. View your playlist's original duration and SponsorBlock-adjusted duration instantly.
+
+## Copying Someone Else’s Playlist
+
+If you want to analyze a playlist that isn’t public, you can copy it to a new playlist you own:
+
+Take the URL of the other person’s playlist, e.g.:
+
+https://www.youtube.com/playlist?list=PLxxxxxx
+
+
+Replace www with music in the URL:
+
+https://music.youtube.com/playlist?list=PLxxxxxx
+
+
+On YouTube Music, click the three dots on the playlist and select Add all to playlist to copy it to your own account.
+
+Use the URL of your new playlist in the app.
